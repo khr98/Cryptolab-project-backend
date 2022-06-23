@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404
 from .serializers import QrCodeSerializer
 from rest_framework import status
 from rest_framework.views import APIView
+from django.core import serializers
 
 # Create your views here.
 class SignUpView(View):
@@ -28,7 +29,60 @@ class SignUpView(View):
         User.objects.create(email=email, password=password_crypt)
         return JsonResponse({'message': 'SUCCESS!'}, status=201)
 
+
+def CreateQrCode(request):
+    data = json.loads(request.body)
+    user = User.objects.get(pk='2')
+    if request.method == "POST":
+        user=user
+        latitude = data["latitude"]
+        longitude = data["longitude"]
+    Qrcode.objects.create(user=user, latitude=latitude, longitude=longitude)
+    return JsonResponse({'message': 'SUCCESS!'})
     
+def ReadQrCode(request):
+    #locations = Qrcode.objects.all()
+    locations = serializers.serialize("json", Qrcode.objects.all())
+    return HttpResponse(locations)
+    
+def ReadDetailQrCode(request,pk):
+    #location = Qrcode.objects.filter(pk=pk)
+    location = serializers.serialize("json", Qrcode.objects.filter(pk=pk))
+    return HttpResponse(location)
+    
+def UpdateQrCode(request):
+    data = json.loads(request.body)
+    location = Qrcode.objects.order_by('?').first()
+    if request.method == "PUT":
+        location.latitude = data["latitude"]
+        location.longitude = data["longitude"]
+        location.save()
+    return JsonResponse({'message': 'Random object Update SUCCESS!'})
+ 
+def UpdateDetailQrCode(request,pk):
+    data = json.loads(request.body)
+    location = Qrcode.objects.get(pk=pk)
+    if request.method == "PUT":
+        location.latitude = data["latitude"]
+        location.longitude = data["longitude"]
+        location.save()
+        #location.update(latitude=data["latitude"],longitude=data["longitude"])
+    return JsonResponse({'message': 'object Update SUCCESS!'})
+
+def DeleteQrCode(request):
+    location = Qrcode.objects.order_by('?').first()
+    if request.method == "DELETE":
+        location.delete()
+    return JsonResponse({'message': 'Random object Delete SUCCESS!'})
+
+  
+def DeleteDetailQrCode(request,pk):
+    location = Qrcode.objects.filter(pk=pk)
+    if request.method == "DELETE":
+        location.delete()
+    return JsonResponse({'message': 'Delete SUCCESS!'})
+    
+   
 class QRCodeView(APIView):
     def post(self, request):
         serializer = QrCodeSerializer(data=request.data)
