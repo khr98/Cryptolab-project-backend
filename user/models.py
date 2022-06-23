@@ -12,7 +12,7 @@ class User(models.Model):
 
 class Qrcode(models.Model):
     seqId = models.AutoField(db_column='idQRcode', primary_key=True)  # Field name made lowercase.
-    user = models.CharField(max_length=45, blank=True, null=True)
+    user = models.ForeignKey('User',models.DO_NOTHING,max_length=45, blank=True, null=True, db_column='user')
     latitude = models.CharField(max_length=45, blank=True, null=True)
     longitude = models.CharField(max_length=45, blank=True, null=True)
 
