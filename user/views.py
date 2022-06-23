@@ -32,7 +32,7 @@ class SignUpView(View):
 
 def CreateQrCode(request):
     data = json.loads(request.body)
-    user = User.objects.get(pk='2')
+    user = User.objects.order_by('?').first()
     if request.method == "POST":
         user=user
         latitude = data["latitude"]
