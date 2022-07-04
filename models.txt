@@ -9,20 +9,20 @@ from django.db import models
 
 
 class Qrcode(models.Model):
-    idqrcode = models.AutoField(db_column='idQRcode', primary_key=True)  # Field name made lowercase.
-    user = models.CharField(max_length=45, blank=True, null=True)
-    latitude = models.CharField(max_length=45, blank=True, null=True)
-    longitude = models.CharField(max_length=45, blank=True, null=True)
+    idqrcode = models.AutoField(db_column='idQrcode', primary_key=True)  # Field name made lowercase.
+    latitude = models.FloatField(blank=True, null=True)
+    longitude = models.FloatField(blank=True, null=True)
 
     class Meta:
         managed = False
-        db_table = 'QRcode'
+        db_table = 'Qrcode'
 
 
 class User(models.Model):
     iduser = models.AutoField(db_column='idUser', primary_key=True)  # Field name made lowercase.
     email = models.CharField(max_length=45)
     password = models.CharField(max_length=300)
+    username = models.CharField(max_length=45)
 
     class Meta:
         managed = False
@@ -96,6 +96,16 @@ class AuthUserUserPermissions(models.Model):
         managed = False
         db_table = 'auth_user_user_permissions'
         unique_together = (('user', 'permission'),)
+
+
+class AuthtokenToken(models.Model):
+    key = models.CharField(primary_key=True, max_length=40)
+    created = models.DateTimeField()
+    user = models.OneToOneField(User, models.DO_NOTHING)
+
+    class Meta:
+        managed = False
+        db_table = 'authtoken_token'
 
 
 class DjangoAdminLog(models.Model):
