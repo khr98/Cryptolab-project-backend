@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 from pathlib import Path
 from datetime import timedelta
 from time import time
+import os
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -23,10 +24,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure--d0iqe$*h%7a&&je4u)%wxmdn60eadex*nk(a22y28u1r5t9d1'
+SECRET_KEY = os.environ.get("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DEBUG")
 
 ALLOWED_HOSTS = ['*']
 
@@ -143,14 +144,29 @@ WSGI_APPLICATION = 'cryptolab_project.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'Cryptolab',
-        'USER' : 'root',
-        'PASSWORD' : 'hyerkim224',
-        'HOST' : 'localhost',
-        'PORT' : '',
+        'NAME': os.environ.get("DB_NAME"),
+        'USER': os.environ.get("DB_USER"),
+        'PASSWORD': os.environ.get("DB_PASSWORD"),
+        'HOST': os.environ.get("DB_HOST"),
+        'PORT': '3306',
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
+        },
     }
 }
 
+SITE_ID = 1
+
+EMAIL = {
+    'EMAIL_BACKEND'      :'django.core.mail.backends.smtp.EmailBackend', 
+    'EMAIL_USE_TLS'      : True,      
+    'EMAIL_PORT'         : 587,                   
+    'EMAIL_HOST'         : 'smtp.gmail.com',
+    'EMAIL_HOST_USER'    : 'hyerim980513@gmail.com',
+    'EMAIL_HOST_PASSWORD': 'Flfla22$',
+    'DEFAULT_FROM_EMAIL' : 'EMAIL_HOST_USER'
+    
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
