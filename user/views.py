@@ -15,6 +15,8 @@ from rest_framework import generics
 from django.utils.decorators import method_decorator
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.hashers import check_password
+from rest_framework import generics
+from rest_framework import mixins
 
 # Create your views here.
 @permission_classes([AllowAny])
@@ -60,15 +62,15 @@ class LoginAPIView(APIView):
 
 
 
-# @method_decorator(name='post', decorator=swagger_auto_schema(
-#     operation_summary='create an user account',
-#     operation_id='createAccount',
-#     tags=['accounts']))
+@method_decorator(name='post', decorator=swagger_auto_schema(
+    operation_summary='create an user account',
+    operation_id='createAccount',
+    tags=['accounts']))
 @permission_classes([AllowAny])
 class SignUpAPIView(generics.CreateAPIView):
     queryset = get_user_model().objects.all()
     serializer_class = UserCreateSerializer
-
+    
 
 
 # @permission_classes([AllowAny])
@@ -98,72 +100,66 @@ class SignUpAPIView(generics.CreateAPIView):
 #         return Response({'message': 'SUCCESS!'}, status=201)
 
 
-# def CreateQrCode(request):
-#     data = json.loads(request.body)
-#     user = User.objects.order_by('?').first()
-#     if request.method == "POST":
-#         user=user
-#         latitude = data["latitude"]
-#         longitude = data["longitude"]
-#     Qrcode.objects.create(user=user, latitude=latitude, longitude=longitude)
-#     return JsonResponse({'message': 'SUCCESS!'})
-    
-# def ReadQrCode(request):
-#     if request.method == "GET":
-#         locations = serializers.serialize("json", Qrcode.objects.all())
-#     return HttpResponse(locations)
-    
-# def ReadDetailQrCode(request,pk):
-#     if request.method == "GET":
-#         location = serializers.serialize("json", Qrcode.objects.filter(pk=pk))
-#     return HttpResponse(location)
-    
-# def UpdateQrCode(request):
-#     data = json.loads(request.body)
-#     location = Qrcode.objects.order_by('?').first()
-#     if request.method == "PUT":
-#         location.latitude = data["latitude"]
-#         location.longitude = data["longitude"]
-#         location.save()
-#     return JsonResponse({'message': 'Random object Update SUCCESS!'})
- 
-# def UpdateDetailQrCode(request,pk):
-#     data = json.loads(request.body)
-#     location = Qrcode.objects.get(pk=pk)
-#     if request.method == "PUT":
-#         location.latitude = data["latitude"]
-#         location.longitude = data["longitude"]
-#         location.save()
-#         #location.update(latitude=data["latitude"],longitude=data["longitude"])
-#     return JsonResponse({'message': 'object Update SUCCESS!'})
-
-# def DeleteQrCode(request):
-#     location = Qrcode.objects.order_by('?').first()
-#     if request.method == "DELETE":
-#         location.delete()
-#     return JsonResponse({'message': 'Random object Delete SUCCESS!'})
-
-  
-# def DeleteDetailQrCode(request,pk):
-#     location = Qrcode.objects.filter(pk=pk)
-#     if request.method == "DELETE":
-#         location.delete()
-#     return JsonResponse({'message': 'Delete SUCCESS!'})
+QrCodeSchema = openapi.Schema(
+    'qr-code',
+    type=openapi.TYPE_OBJECT,
+    properties={
+        'seqId': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_UUID),
+        'latitude': openapi.Schema(type=openapi.TYPE_NUMBER, format=openapi.FORMAT_FLOAT),
+        'longitude': openapi.Schema(type=openapi.TYPE_NUMBER, format=openapi.FORMAT_FLOAT),
+        'user': openapi.Schema(type=openapi.TYPE_NUMBER, format=openapi.FORMAT_INT32),
+        'validity': openapi.Schema(type=openapi.TYPE_BOOLEAN)
+    }
+)
 
 @permission_classes([AllowAny])
-class QrCodeAPIView(APIView):
-    def get(self,request):
-        serializer = QrCodeSerializer(Qrcode.objects.all(), many=True)
-        if len(serializer.data) == 0:
-            return Response({'error': 'QRcode is empty'}, status=409)
-        return Response(serializer.data)
+class QrCodeAPIView(mixins.ListModelMixin,
+                        mixins.CreateModelMixin,
+                        generics.GenericAPIView):
+    queryset = Qrcode.objects.all()
+    serializer_class = QrCodeSerializer
+    
+    @swagger_auto_schema(
+        operation_summary='get all QR code information',
+        operation_id='getLocation',
+        tags=['location'],
+        responses={
+            status.HTTP_201_CREATED: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={'data': QrCodeSchema}
+            ),
+            status.HTTP_409_CONFLICT: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'error': openapi.Schema(
+                        type=openapi.TYPE_STRING,
+                        example='QRcode is empty',
+                    )
+                }
+            )
+        }
+    )
+    
+    
+    
+    # def get(self,request):
+    #     serializer = QrCodeSerializer(Qrcode.objects.all(), many=True)
+    #     if len(serializer.data) == 0:
+    #         return Response({'error': 'QRcode is empty'}, status=409)
+    #     return Response(serializer.data, status=200)
       
-    def post(self, request):
-        serializer = QrCodeSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400) 
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+      
+    # def post(self, request):
+    #     serializer = QrCodeSerializer(data=request.data)
+    #     if serializer.is_valid():
+    #         serializer.save()
+    #         return Response(serializer.data, status=201)
+    #     return Response(serializer.errors, status=400) 
+    
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
    
     def patch(self,request):
         location = Qrcode.objects.order_by('?').first()
@@ -181,45 +177,41 @@ class QrCodeAPIView(APIView):
         location.delete()
         return Response({'message':'delete Success'})
 
+
 @permission_classes([AllowAny])
-class QRCodeDetailAPIView(APIView):
-    def get_object(self, pk):
-        return get_object_or_404(Qrcode, pk=pk)
+class QRCodeDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
+    """
+        Location GET,PATCH,DELETE API
+        
+        ---
+        # 내용
+            - longitude : 경도
+            - latitude : 위도
+            - user : 만든 user
+            - validity : 데이터 유효성
+    """
+    
+    queryset = Qrcode.objects.all()
+    serializer_class = QrCodeSerializer
+    
+    # def get_object(self, pk):
+    #     return get_object_or_404(Qrcode, pk=pk)
 
-    # @swagger_auto_schema(
-    #     operation_summary='read QR code information of corresponding id',
-    #     operation_id='getLocation',
-    #     tags=['locationId'],
-    #     responses={
-    #         status.HTTP_201_CREATED: openapi.Schema(
-    #             type=openapi.TYPE_OBJECT,
-    #             properties={'data': LocationQrCodeSchema}
-    #         ),
-    #         status.HTTP_409_CONFLICT: openapi.Schema(
-    #             type=openapi.TYPE_OBJECT,
-    #             properties={
-    #                 'error': openapi.Schema(
-    #                     type=openapi.TYPE_STRING,
-    #                     example='No matching object',
-    #                 )
-    #             }
-    #         )
-    #     }
-    # )
-    def get(self,request,pk):
-        location = get_object_or_404(Qrcode, pk=pk)
-        serializer = QrCodeSerializer(location)
-        return Response(serializer.data)
+    # def get(self,request,pk):
+    #     location = get_object_or_404(Qrcode, pk=pk)
+    #     serializer = QrCodeSerializer(location)
+    #     return Response(serializer.data)
 
-    def patch(self, request, pk):
-        location = get_object_or_404(Qrcode, pk=pk)
-        serializer = QrCodeSerializer(location, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return JsonResponse(serializer.data)
-        return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def delete(self,request,pk):
-        location = get_object_or_404(Qrcode, pk=pk)
-        location.delete()
-        return JsonResponse({'message': 'Delete SUCCESS!'}, status=201)
+    # def patch(self, request, pk):
+    #     location = get_object_or_404(Qrcode, pk=pk)
+    #     serializer = QrCodeSerializer(location, data=request.data)
+    #     if serializer.is_valid():
+    #         serializer.save()
+    #         return JsonResponse(serializer.data)
+    #     return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    # def delete(self,request,pk):
+    #     location = get_object_or_404(Qrcode, pk=pk)
+    #     location.delete()
+    #     return JsonResponse({'message': 'Delete SUCCESS!'}, status=201)
+    
