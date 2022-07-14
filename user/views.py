@@ -17,6 +17,18 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.hashers import check_password
 from rest_framework import generics
 from rest_framework import mixins
+from django.core.mail import send_mail
+from django.core.mail import EmailMessage
+from rest_framework.renderers import JSONRenderer
+from django.core.exceptions import ObjectDoesNotExist
+from django.contrib.auth.tokens import default_token_generator
+###email###
+from django.template.loader import render_to_string
+from django.contrib.sites.models import Site
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from rest_framework import viewsets
+
 
 # Create your views here.
 @permission_classes([AllowAny])
@@ -70,8 +82,33 @@ class LoginAPIView(APIView):
 class SignUpAPIView(generics.CreateAPIView):
     queryset = get_user_model().objects.all()
     serializer_class = UserCreateSerializer
-    
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        try:
+                print(user)
+                current_site = Site.objects.get_current()
+                print('1')
+                message = render_to_string('user_active_email.html', {
+                    'user': user,
+                    'domain': current_site.domain,
+                    'uid': urlsafe_base64_encode(force_bytes(user.id)).encode().decode(),
+                    'token': default_token_generator.make_token(user)
+                })
+                print('2')
+                mail_subject = "회원가입 인증 메일입니다."
+                user_email = user.email
+                print(user_email)
+                email = EmailMessage(mail_subject, message, to=[user_email])
+                print('3')
+                email.send()
+                return Response({"message":"입력하신 이메일로 인증 메일을 보냈습니다"})
+        except Exception as e:
+            print(e)
+            user.delete()
+            return Response({"message":"signUp Failed"})
 
 # @permission_classes([AllowAny])
 # class SignUpAPIView(View):
@@ -177,22 +214,39 @@ class QrCodeAPIView(mixins.ListModelMixin,
         location.delete()
         return Response({'message':'delete Success'})
 
-
 @permission_classes([AllowAny])
-class QRCodeDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
-    """
-        Location GET,PATCH,DELETE API
-        
-        ---
-        # 내용
-            - longitude : 경도
-            - latitude : 위도
-            - user : 만든 user
-            - validity : 데이터 유효성
-    """
-    
+class LocationViewSet(viewsets.ModelViewSet):
     queryset = Qrcode.objects.all()
     serializer_class = QrCodeSerializer
+    
+    def destroy(self, request, *args, **kwargs):
+        location = self.get_object()
+        if (location.user.id == request.auth['user_id']) or (location.user.id is None):
+            return super().destroy(request, *args, **kwargs)
+        else:
+            return Response({'message': '삭제할 권한이 없습니다'}, status=status.HTTP_403_FORBIDDEN)
+
+    def partial_update(self, request, *args, **kwargs):
+        location = self.get_object()
+        if (location.user.id == request.auth['user_id']) or (location.user.id is None):
+            return super().update(request, *args, **kwargs)
+        else:
+            return Response({'message': '수정할 권한이 없습니다'}, status=status.HTTP_403_FORBIDDEN)
+# @permission_classes([AllowAny])
+# class QRCodeDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
+#     """
+#         Location GET,PATCH,DELETE API
+        
+#         ---
+#         # 내용
+#             - longitude : 경도
+#             - latitude : 위도
+#             - user : 만든 user
+#             - validity : 데이터 유효성
+#     """
+    
+#     queryset = Qrcode.objects.all()
+#     serializer_class = QrCodeSerializer
     
     # def get_object(self, pk):
     #     return get_object_or_404(Qrcode, pk=pk)
@@ -214,4 +268,5 @@ class QRCodeDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     #     location = get_object_or_404(Qrcode, pk=pk)
     #     location.delete()
     #     return JsonResponse({'message': 'Delete SUCCESS!'}, status=201)
+    
     

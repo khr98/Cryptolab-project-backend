@@ -4,6 +4,7 @@ from django.contrib.auth.models import AbstractUser
 
 class User(AbstractUser):
     email = models.EmailField(verbose_name="email_address", blank=False, unique=True)
+    #verified = models.BooleanField(verbose_name="email verified", default=False)
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
@@ -12,7 +13,7 @@ class User(AbstractUser):
 
 class Qrcode(models.Model):
     seqId = models.AutoField(db_column='idQRcode', primary_key=True)  # Field name made lowercase.
-    user = models.ForeignKey('User',models.DO_NOTHING,blank=True, null=True, db_column='user')
+    user = models.ForeignKey('User',models.PROTECT,blank=True, null=True, db_column='user')
     latitude = models.FloatField(blank=True, null=True)
     longitude = models.FloatField(blank=True, null=True)
 

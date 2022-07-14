@@ -11,6 +11,15 @@ urlpatterns = [
     path('token/refresh/',TokenRefreshView.as_view(), name='token_refresh'),
     # path("rest-auth/", include('rest_auth.urls')),
     # path("rest-auth/registration/", include('rest_auth.registration.urls')),
-    path('locations/',views.QrCodeAPIView.as_view()),
-    path('locations/<int:pk>',views.QRCodeDetailAPIView.as_view()),   
+    # path('locations/',views.QrCodeAPIView.as_view()),
+    # path('locations/<int:pk>',views.QRCodeDetailAPIView.as_view()), 
+    path('locations/', views.LocationViewSet.as_view({
+        'get': 'list',
+        'post': 'create',
+    })),
+    path('locations/<int:pk>', views.LocationViewSet.as_view({
+        'get' : 'retrieve',
+        'patch': 'partial_update',
+        'delete': 'destroy',
+    })),  
 ]

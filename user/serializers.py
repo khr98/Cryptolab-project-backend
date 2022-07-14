@@ -1,9 +1,10 @@
+from email import message
 from rest_framework import serializers
 from .models import *
 from django.contrib.auth import get_user_model
 from rest_framework.validators import UniqueValidator
 from rest_framework.response import Response
-from django.core.mail import send_mail
+
 
 
 
@@ -20,13 +21,13 @@ class UserCreateSerializer(serializers.ModelSerializer) :
             email=validated_data['email'],
             password=validated_data['password'],
             is_active = False,
-        )
+            )
             return user
 
     
     class Meta:
         model = get_user_model()
-        fields = ("username", "email", "password")
+        fields = ("id","username", "email", "password")
 
 
 class QrCodeSerializer(serializers.ModelSerializer):
